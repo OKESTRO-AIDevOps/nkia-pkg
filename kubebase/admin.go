@@ -12,7 +12,9 @@ import (
 
 func AdminInitNPIA() {
 
-	outfile, err := os.Create("npia_init_log")
+	outfile, err := os.Create(".npia/.init_log")
+
+	lib_exists := 0
 
 	if err != nil {
 		return
@@ -20,7 +22,7 @@ func AdminInitNPIA() {
 
 	if _, err := os.Stat("lib"); err == nil {
 
-		outfile.Write([]byte("failed to init: lib exists\n"))
+		lib_exists = 1
 
 		return
 
@@ -41,51 +43,55 @@ func AdminInitNPIA() {
 		return
 	}
 
-	cmd := exec.Command("curl", "-L", "https://github.com/OKESTRO-AIDevOps/nkia/releases/download/latest/lib.tgz", "-o", "lib.tgz")
+	if lib_exists != 1 {
 
-	cmd.Stdout = outfile
+		cmd := exec.Command("curl", "-L", "https://github.com/OKESTRO-AIDevOps/nkia/releases/download/latest/lib.tgz", "-o", "lib.tgz")
 
-	cmd.Stderr = outfile
+		cmd.Stdout = outfile
 
-	err = cmd.Run()
+		cmd.Stderr = outfile
 
-	if err != nil {
-		AdminBlindResetNPIA()
+		err = cmd.Run()
 
-		outfile.Write([]byte(err.Error()))
+		if err != nil {
+			AdminBlindResetNPIA()
 
-		return
+			outfile.Write([]byte(err.Error()))
+
+			return
+		}
+
+		cmd = exec.Command("tar", "-xzvf", "lib.tgz")
+
+		cmd.Stdout = outfile
+
+		cmd.Stderr = outfile
+
+		err = cmd.Run()
+
+		if err != nil {
+			AdminBlindResetNPIA()
+			outfile.Write([]byte(err.Error()))
+			return
+		}
+
+		cmd = exec.Command("rm", "-r", "lib.tgz")
+
+		cmd.Stdout = outfile
+
+		cmd.Stderr = outfile
+
+		err = cmd.Run()
+
+		if err != nil {
+			AdminBlindResetNPIA()
+			outfile.Write([]byte(err.Error()))
+			return
+		}
+
 	}
 
-	cmd = exec.Command("tar", "-xzvf", "lib.tgz")
-
-	cmd.Stdout = outfile
-
-	cmd.Stderr = outfile
-
-	err = cmd.Run()
-
-	if err != nil {
-		AdminBlindResetNPIA()
-		outfile.Write([]byte(err.Error()))
-		return
-	}
-
-	cmd = exec.Command("rm", "-r", "lib.tgz")
-
-	cmd.Stdout = outfile
-
-	cmd.Stderr = outfile
-
-	err = cmd.Run()
-
-	if err != nil {
-		AdminBlindResetNPIA()
-		outfile.Write([]byte(err.Error()))
-		return
-	}
-
-	cmd = exec.Command("mkdir", "-p", ".usr")
+	cmd := exec.Command("mkdir", "-p", ".usr")
 
 	cmd.Stdout = outfile
 
@@ -192,14 +198,14 @@ func AdminInitNPIA() {
 
 	}
 
-	file_byte, err := os.ReadFile("npia_init_log")
+	file_byte, err := os.ReadFile(".npia/.init_log")
 
 	if err != nil {
 		AdminBlindResetNPIA()
 		return
 	}
 
-	err = os.Remove("npia_init_log")
+	err = os.Remove(".npia/.init_log")
 
 	if err != nil {
 
@@ -207,7 +213,7 @@ func AdminInitNPIA() {
 		return
 	}
 
-	err = os.WriteFile("npia_init_done", file_byte, 0644)
+	err = os.WriteFile(".npia/.init", file_byte, 0644)
 
 	if err != nil {
 		AdminBlindResetNPIA()
@@ -224,13 +230,13 @@ func AdminGetInitLog() ([]byte, error) {
 
 	var err error
 
-	if _, err := os.Stat("npia_init_log"); err == nil {
+	if _, err := os.Stat(".npia/.init_log"); err == nil {
 
-		ret_byte, err = os.ReadFile("npia_init_log")
+		ret_byte, err = os.ReadFile(".npia/.init_log")
 
-	} else if _, err := os.Stat("npia_init_done"); err == nil {
+	} else if _, err := os.Stat(".npia/.init"); err == nil {
 
-		ret_byte, err = os.ReadFile("npia_init_done")
+		ret_byte, err = os.ReadFile(".npia/.init")
 
 	} else {
 
